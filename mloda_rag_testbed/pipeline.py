@@ -35,8 +35,8 @@ from mloda_rag_testbed.feature_groups.chat_answer import (
     MistralChatAnswer,
 )
 
-# The corpus is 8 documents / a dozen tuples; the paginated reader never returns a cursor, so a
-# fixture that ever grew past this would silently truncate authorization tuples (asserted below).
+# The corpus is far smaller than this; the paginated reader never returns a cursor, so a fixture
+# that ever grew past page_size would silently truncate authorization tuples (asserted below).
 _PAGE_SIZE = 500
 
 # Cheap: the CLI call dominates latency anyway. Covers any concurrent-request risk in
