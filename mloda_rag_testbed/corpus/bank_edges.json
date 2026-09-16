@@ -1,0 +1,7 @@
+[
+  ["alice_payroll", "alice_statement"],
+  ["bob_loan", "bob_statement"],
+  ["pub_faq", "alice_payroll"],
+  ["pub_fees", "pub_faq"],
+  ["pub_newsletter", "pub_hours"]
+]
