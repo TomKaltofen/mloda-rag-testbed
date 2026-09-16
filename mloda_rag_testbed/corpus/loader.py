@@ -20,9 +20,15 @@ def _resource_text(name: str) -> str:
 
 
 def load_documents(canary: str, poison: str) -> list[dict[str, Any]]:
-    """Return the corpus documents with ``{canary}``/``{poison}`` substituted."""
+    """Return the corpus documents with ``{canary}``/``{poison}`` substituted.
+
+    Plain ``str.replace``, not ``str.format``: the packaged text is fixed, but an operator-supplied
+    ``TESTBED_SYSTEM_PROMPT_FILE`` (loaded separately below) could contain unrelated braces, and
+    ``.format`` would raise on an unrelated ``{...}`` or, worse, evaluate an attribute-access
+    expression inside one.
+    """
     raw: list[dict[str, Any]] = json.loads(_resource_text("bank_documents.json"))
-    return [{**doc, "text": doc["text"].format(canary=canary, poison=poison)} for doc in raw]
+    return [{**doc, "text": doc["text"].replace("{canary}", canary).replace("{poison}", poison)} for doc in raw]
 
 
 def load_edges() -> list[list[str]]:
@@ -41,7 +47,7 @@ def load_system_prompt(secret: str, override_path: str | None = None) -> str:
             raw = fh.read()
     else:
         raw = _resource_text("system_prompt.txt")
-    return raw.format(secret=secret)
+    return raw.replace("{secret}", secret)
 
 
 def authz_tuples_path() -> str:

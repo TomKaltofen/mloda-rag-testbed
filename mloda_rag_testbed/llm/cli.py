@@ -6,8 +6,20 @@ Mirrors rag_integration's ``ClaudeCliResponse._call_claude_cli``: a fixed argv l
 
 from __future__ import annotations
 
+import os
 import subprocess  # nosec B404
 from collections.abc import Mapping
+
+# Never inherit the full parent environment: that would leak TESTBED_SECRET/CANARY/POISON to a
+# subprocess that runs attacker-controlled text. Only these keys pass through by default.
+_ENV_ALLOWLIST = ("PATH", "HOME", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL")
+_API_KEY_ALLOWLIST = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MISTRAL_API_KEY")
+
+
+def default_env() -> dict[str, str]:
+    """A minimal, explicit environment: PATH/HOME/locale plus any set API key, nothing else."""
+    keys = _ENV_ALLOWLIST + _API_KEY_ALLOWLIST
+    return {key: os.environ[key] for key in keys if key in os.environ}
 
 
 class LlmUnavailableError(RuntimeError):
@@ -23,6 +35,7 @@ def run_cli(
 ) -> str:
     """Run ``argv`` with ``prompt`` on stdin; return stdout, stripped.
 
+    ``env=None`` (the default) runs with :func:`default_env`, not the parent's full environment.
     Raises :class:`LlmUnavailableError` if the binary is not on PATH, exits non-zero, or times out.
     Callers whose CLI writes the answer elsewhere (a file, not stdout) read that file themselves;
     this function's return value is meaningful only for a stdout-based backend.
@@ -35,7 +48,7 @@ def run_cli(
             text=True,
             timeout=timeout,
             cwd=cwd,
-            env=dict(env) if env else None,
+            env=dict(env) if env is not None else default_env(),
             check=False,
         )
     except FileNotFoundError as exc:

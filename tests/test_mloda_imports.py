@@ -29,3 +29,9 @@ def test_open_kgo_saas_authz_imports() -> None:
     from open_kgo.feature_groups.kg.saas_authz.paginated_tuple_store import PaginatedTupleStoreFeatureGroup
 
     assert PaginatedTupleStoreFeatureGroup is not None
+
+
+def test_mloda_testing_imports() -> None:
+    from mloda.testing.base import FeatureGroupTestBase
+
+    assert FeatureGroupTestBase is not None

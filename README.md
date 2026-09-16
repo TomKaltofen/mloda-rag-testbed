@@ -49,6 +49,10 @@ Swap `TESTBED_LLM=fake` for `codex` or `mistral` to use a real model (see the Se
 and install the CLI first: `codex` ships with [OpenAI's codex](https://github.com/openai/codex);
 Mistral Vibe via `uv tool install mistral-vibe`, `MISTRAL_API_KEY` set).
 
+`fake` is for local testing and the test suite only; it never emits the planted secret, canary, or
+poison text, so it is not a meaningful llmsectest scan target. Use `codex` or `mistral` for an
+actual scan.
+
 ## Architecture
 
 Two `mloda.run_all` calls per request:

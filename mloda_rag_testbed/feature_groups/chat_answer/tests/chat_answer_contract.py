@@ -65,6 +65,14 @@ class ChatAnswerContractBase(ABC):
         connector = self.answer_class()
         assert self.backend_value() in connector.LLM_BACKENDS
 
+    def test_unrecognized_retrieval_raises_chat_answer_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from mloda_rag_testbed.feature_groups.chat_answer.base import ChatAnswerError
+
+        self.patch_backend(monkeypatch)
+        docs = [{"doc_id": "d1", "text": "hi"}]
+        with pytest.raises(ChatAnswerError, match="bm2s"):
+            self._run(retrieval="bm2s", documents=docs)
+
     # -- Helpers -----------------------------------------------------------------
 
     def _run(

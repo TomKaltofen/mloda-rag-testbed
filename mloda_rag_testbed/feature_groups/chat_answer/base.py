@@ -26,15 +26,19 @@ from mloda_plugins.compute_framework.base_implementations.python_dict.python_dic
     PythonDictFramework,
 )
 from mloda_plugins.compute_framework.base_implementations.python_dict.python_dict_utils import columnar_to_rows
+from rag_integration.feature_groups.connectors.mixins import SingleQueryPerRunMixin
 
 from mloda_rag_testbed.feature_groups.chat_answer.prompt import build_prompt
 
+# retrieval option -> the chained feature name that mode produces (input_features below).
+_RETRIEVAL_FEATURE_KEYS = {"bm25s": "retrieved_passages", "graph": "graph_passages"}
+
 
 class ChatAnswerError(ValueError):
-    """A chained retrieval feature produced no usable row."""
+    """A chained retrieval feature produced no usable row, or ``retrieval`` is unrecognized."""
 
 
-class BaseChatAnswer(FeatureGroup):
+class BaseChatAnswer(SingleQueryPerRunMixin, FeatureGroup):
     """Root/chained FeatureGroup for chat_answer backends. See module docstring for Options."""
 
     ROOT_FEATURE_NAME = "chat_answer"
@@ -135,34 +139,39 @@ class BaseChatAnswer(FeatureGroup):
         ]
 
     @classmethod
-    def _passages_from_child(cls, data: Any) -> list[dict[str, Any]]:
-        """Read the chained retrieval feature's row; mirrors graph_rag/base.py._graph_from_source."""
-        for row in columnar_to_rows(data):
-            if not isinstance(row, dict):
-                continue
-            if "retrieved_passages" in row:
-                return list(row["retrieved_passages"] or [])
-            if "graph_passages" in row:
-                return list(row["graph_passages"] or [])
-        raise ChatAnswerError(f"{cls.__name__}: chained retrieval feature produced no usable row.")
+    def _passages_from_child(cls, data: Any, expected_key: str) -> list[dict[str, Any]]:
+        """Read the chained retrieval feature's row; mirrors graph_rag/base.py._graph_from_source.
+
+        ``expected_key`` is the exact feature name the active ``retrieval`` mode chained onto
+        (``retrieved_passages`` for bm25s, ``graph_passages`` for graph), not whichever of the two
+        happens to be present, so a stale/mismatched row cannot be silently accepted as the answer.
+        """
+        if data is not None:
+            for row in columnar_to_rows(data):
+                if isinstance(row, dict) and expected_key in row:
+                    return list(row[expected_key] or [])
+        raise ChatAnswerError(f"{cls.__name__}: chained feature {expected_key!r} produced no usable row.")
 
     @classmethod
     def calculate_feature(cls, data: Any, features: FeatureSet) -> list[dict[str, Any]]:
-        for feature in features.features:
-            options = feature.options
-            query_text = str(options.get(cls.QUERY_TEXT) or "")
-            system_prompt = str(options.get(cls.SYSTEM_PROMPT) or "")
-            documents = options.get(cls.DOCUMENTS)
+        cls._assert_single_feature(features)
+        feature = next(iter(features.features))
+        options = feature.options
+        query_text = str(options.get(cls.QUERY_TEXT) or "")
+        system_prompt = str(options.get(cls.SYSTEM_PROMPT) or "")
+        documents = options.get(cls.DOCUMENTS)
+        retrieval = options.get(cls.RETRIEVAL)
 
-            if options.get(cls.RETRIEVAL) == "all":
-                passages = cls._passages_from_all(documents)
-            else:
-                passages = cls._passages_from_child(data)
+        if retrieval == "all":
+            passages = cls._passages_from_all(documents)
+        elif retrieval in _RETRIEVAL_FEATURE_KEYS:
+            passages = cls._passages_from_child(data, _RETRIEVAL_FEATURE_KEYS[retrieval])
+        else:
+            raise ChatAnswerError(f"{cls.__name__}: unrecognized retrieval option {retrieval!r}.")
 
-            prompt = build_prompt(system_prompt, passages, query_text)
-            answer = cls._complete(prompt)
-            return [{cls.ROOT_FEATURE_NAME: {"answer": answer, "sources": [p["doc_id"] for p in passages]}}]
-        return []
+        prompt = build_prompt(system_prompt, passages, query_text)
+        answer = cls._complete(prompt)
+        return [{cls.ROOT_FEATURE_NAME: {"answer": answer, "sources": [p["doc_id"] for p in passages]}}]
 
     @classmethod
     @abstractmethod

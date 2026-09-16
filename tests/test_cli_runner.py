@@ -40,3 +40,21 @@ def test_missing_binary_raises() -> None:
         pytest.raises(LlmUnavailableError, match="not found"),
     ):
         run_cli(["definitely-not-a-real-binary"], "prompt", timeout=5)
+
+
+def test_default_env_never_leaks_testbed_vars(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TESTBED_SECRET", "SECRET-SHOULD-NOT-LEAK")
+    monkeypatch.setenv("TESTBED_CANARY", "CANARY-SHOULD-NOT-LEAK")
+    completed = MagicMock(returncode=0, stdout="ok", stderr="")
+    with patch("subprocess.run", return_value=completed) as mock_run:
+        run_cli(["fake-cli"], "prompt", timeout=5)
+    captured_env = mock_run.call_args.kwargs["env"]
+    assert captured_env is not None
+    assert not any(key.startswith("TESTBED_") for key in captured_env)
+
+
+def test_explicit_env_is_used_as_is() -> None:
+    completed = MagicMock(returncode=0, stdout="ok", stderr="")
+    with patch("subprocess.run", return_value=completed) as mock_run:
+        run_cli(["fake-cli"], "prompt", timeout=5, env={"ONLY_THIS": "value"})
+    assert mock_run.call_args.kwargs["env"] == {"ONLY_THIS": "value"}

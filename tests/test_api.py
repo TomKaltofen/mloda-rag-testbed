@@ -51,11 +51,21 @@ def test_chat_echoes_conversation_id(client: TestClient) -> None:
 
 def test_chat_returns_500_on_model_failure(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     def _boom(user: str, message: str) -> dict[str, object]:
-        raise RuntimeError("model unavailable")
+        raise RuntimeError("model unavailable: secret leaked in this message SECRET-DEMO-7f2a")
 
     monkeypatch.setattr("mloda_rag_testbed.app.pipeline.answer", _boom)
     response = client.post("/chat", json={"message": "hi"})
     assert response.status_code == 500
+    # Fixed, generic detail only: the real exception (which could echo prompt content) is logged
+    # server-side, never returned to the caller.
+    assert response.json()["detail"] == "chat_answer pipeline failed"
+
+
+def test_chat_returns_500_on_invalid_config(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TESTBED_LLM", "not-a-real-backend")
+    response = client.post("/chat", json={"message": "hi"})
+    assert response.status_code == 500
+    assert "TESTBED_LLM" in response.json()["detail"]
 
 
 def test_health_shape(client: TestClient) -> None:
@@ -67,7 +77,9 @@ def test_health_shape(client: TestClient) -> None:
     assert body["llm_binary_found"] is True
 
 
-def test_concurrent_requests_do_not_cross_contaminate(client: TestClient) -> None:
+def test_concurrent_requests_do_not_cross_contaminate(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TESTBED_AUTHZ", "on")
+
     def _ask(user: str) -> dict[str, object]:
         response = client.post("/chat", json={"message": f"hello from {user}", "user": user})
         assert response.status_code == 200
@@ -79,3 +91,9 @@ def test_concurrent_requests_do_not_cross_contaminate(client: TestClient) -> Non
 
     for user, result in zip(users, results):
         assert result["user"] == user
+        sources = result["sources"]
+        assert isinstance(sources, list)
+        if user == "bob":
+            assert "alice_payroll" not in sources
+        else:
+            assert "bob_loan" not in sources

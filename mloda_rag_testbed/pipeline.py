@@ -38,6 +38,8 @@ from mloda_rag_testbed.feature_groups.chat_answer import (
 # The corpus is far smaller than this; the paginated reader never returns a cursor, so a fixture
 # that ever grew past page_size would silently truncate authorization tuples (asserted below).
 _PAGE_SIZE = 500
+# Derived, not an independent literal: result_limit below page_size would defeat the guard above.
+_RESULT_LIMIT = _PAGE_SIZE * 2
 
 # Cheap: the CLI call dominates latency anyway. Covers any concurrent-request risk in
 # mloda.run_all that is not otherwise documented as thread-safe.
@@ -67,7 +69,7 @@ def authorized_documents(user: str) -> list[dict[str, Any]]:
                     "entity_type": "document",
                     "relationship_type": "viewer",
                     "page_size": _PAGE_SIZE,
-                    "result_limit": 1000,
+                    "result_limit": _RESULT_LIMIT,
                 }
             }
         ]

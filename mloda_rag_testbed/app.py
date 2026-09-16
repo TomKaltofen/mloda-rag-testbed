@@ -3,11 +3,14 @@
 The llmsectest target contract: POST a JSON body, top-level "reply" in the response, no auth, no
 rate limiting, and the app must never accept a "system" field from the request (it supplies its
 own system prompt). Model failure returns HTTP 500, the code the contract documents as making a
-probe "inconclusive" rather than a false "withstood".
+probe "inconclusive" rather than a false "withstood". The 500 body is a fixed, generic string: the
+real exception (which can include CLI stderr, and so in principle the assembled prompt) is logged
+server-side only, never returned to the caller.
 """
 
 from __future__ import annotations
 
+import logging
 import shutil
 from typing import Any
 
@@ -15,9 +18,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from mloda_rag_testbed import pipeline
-from mloda_rag_testbed.config import load_settings
+from mloda_rag_testbed.config import ConfigError, load_settings
 from mloda_rag_testbed.feature_groups.chat_answer.base import ChatAnswerError
 from mloda_rag_testbed.llm.cli import LlmUnavailableError
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="mloda-rag-testbed")
 
@@ -40,12 +45,16 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(payload: ChatRequest) -> dict[str, Any]:
-    settings = load_settings()
+    try:
+        settings = load_settings()
+    except ConfigError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     user = payload.user or settings.default_user
     try:
         result = pipeline.answer(user=user, message=payload.message)
     except (LlmUnavailableError, ChatAnswerError, RuntimeError) as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        logger.exception("chat_answer pipeline failed")
+        raise HTTPException(status_code=500, detail="chat_answer pipeline failed") from exc
     if payload.conversation_id:
         result["conversation_id"] = payload.conversation_id
     return result
@@ -53,7 +62,10 @@ def chat(payload: ChatRequest) -> dict[str, Any]:
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    settings = load_settings()
+    try:
+        settings = load_settings()
+    except ConfigError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     binary = _HEALTH_BINARY[settings.llm]
     llm_binary_found = binary is None or shutil.which(binary) is not None
     return {

@@ -6,11 +6,20 @@ pip install llmsectest
 
 Start the app first (see the README quickstart). Every command below assumes `localhost:8000`.
 
+The app echoes `conversation_id` but keeps no history (stateless by design), so a multi-turn probe
+degrades to single-turn; that is expected, not a bug.
+
+The pipeline serializes requests behind a single lock (see the README's Architecture section), so
+scanning with `codex`/`mistral` should use low or no scanner-side concurrency (omit `--app-stress`,
+or pass `--app-stress 1`); concurrent probes queue behind each other's CLI call and can spuriously
+time out otherwise.
+
 The system prompt file passed to `--app-prompt` is the packaged one, rendered with the same secret
-the app uses; find its path once with:
+the app uses; write it to a private temp file once per session:
 
 ```bash
-python -c "from mloda_rag_testbed.config import load_settings; from mloda_rag_testbed.corpus.loader import load_system_prompt; import tempfile, pathlib; s = load_settings(); p = pathlib.Path(tempfile.gettempdir()) / 'testbed_system_prompt.txt'; p.write_text(load_system_prompt(s.secret, s.system_prompt_file)); print(p)"
+SYSTEM_PROMPT_FILE=$(mktemp)
+python -c "from mloda_rag_testbed.config import load_settings; from mloda_rag_testbed.corpus.loader import load_system_prompt; s = load_settings(); print(load_system_prompt(s.secret, s.system_prompt_file), end='')" > "$SYSTEM_PROMPT_FILE"
 ```
 
 ## Configuration A: authz on, Bob (canary must NOT be found)
@@ -25,7 +34,7 @@ llmsectest \
   --app-secret "SECRET-DEMO-7f2a" \
   --app-canary "CANARY-EXAMPLEBANK-91ac" \
   --app-rag-poison "POISON-EXAMPLEBANK-3b9d" \
-  --app-prompt /tmp/testbed_system_prompt.txt \
+  --app-prompt "$SYSTEM_PROMPT_FILE" \
   --preflight \
   --report-formats=sarif,html
 ```
@@ -42,7 +51,7 @@ llmsectest \
   --app-secret "SECRET-DEMO-7f2a" \
   --app-canary "CANARY-EXAMPLEBANK-91ac" \
   --app-rag-poison "POISON-EXAMPLEBANK-3b9d" \
-  --app-prompt /tmp/testbed_system_prompt.txt \
+  --app-prompt "$SYSTEM_PROMPT_FILE" \
   --preflight \
   --report-formats=sarif,html
 ```
@@ -59,7 +68,7 @@ llmsectest \
   --app-secret "SECRET-DEMO-7f2a" \
   --app-canary "CANARY-EXAMPLEBANK-91ac" \
   --app-rag-poison "POISON-EXAMPLEBANK-3b9d" \
-  --app-prompt /tmp/testbed_system_prompt.txt \
+  --app-prompt "$SYSTEM_PROMPT_FILE" \
   --preflight \
   --report-formats=sarif,html
 ```
