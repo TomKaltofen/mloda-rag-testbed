@@ -31,13 +31,15 @@ class TestCodexChatAnswer(ChatAnswerContractBase):
         monkeypatch.setattr("mloda_rag_testbed.feature_groups.chat_answer.codex.run_cli", _fake_run_cli)
 
     def test_argv_includes_safety_flags(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        captured: dict[str, list[str]] = {}
+        captured: dict[str, Any] = {}
 
         def _capture(argv: list[str], prompt: str, **kwargs: Any) -> str:
             captured["argv"] = argv
+            captured["kwargs"] = kwargs
             return _fake_run_cli(argv, prompt, **kwargs)
 
         monkeypatch.setattr("mloda_rag_testbed.feature_groups.chat_answer.codex.run_cli", _capture)
+        monkeypatch.setenv("TESTBED_SECRET", "SECRET-SHOULD-NOT-LEAK")
         self._run(retrieval="all", documents=[{"doc_id": "d1", "text": "hi"}])
         argv = captured["argv"]
         assert "--ignore-user-config" in argv
@@ -46,6 +48,11 @@ class TestCodexChatAnswer(ChatAnswerContractBase):
         assert "--ephemeral" in argv
         assert argv[argv.index("-s") + 1] == "read-only"
         assert argv[-1] == "-"
+
+        env = captured["kwargs"]["env"]
+        scratch_dir = argv[argv.index("-C") + 1]
+        assert env["CODEX_HOME"].startswith(scratch_dir)
+        assert not any(key.startswith("TESTBED_") for key in env)
 
 
 @pytest.mark.llm

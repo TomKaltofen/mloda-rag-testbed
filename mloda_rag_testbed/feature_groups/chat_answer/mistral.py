@@ -7,13 +7,12 @@ the same class of risk documented on the codex backend.
 
 from __future__ import annotations
 
-import os
 import tempfile
 from typing import ClassVar
 
 from mloda_rag_testbed.config import load_settings
 from mloda_rag_testbed.feature_groups.chat_answer.base import BaseChatAnswer
-from mloda_rag_testbed.llm.cli import run_cli
+from mloda_rag_testbed.llm.cli import default_env, run_cli
 
 
 class MistralChatAnswer(BaseChatAnswer):
@@ -38,7 +37,7 @@ class MistralChatAnswer(BaseChatAnswer):
                 "--workdir",
                 scratch_dir,
             ]
-            env = None
+            env = default_env()
             if settings.llm_model:
-                env = {**os.environ, "VIBE_ACTIVE_MODEL": settings.llm_model}
+                env["VIBE_ACTIVE_MODEL"] = settings.llm_model
             return run_cli(argv, prompt, timeout=settings.llm_timeout, cwd=scratch_dir, env=env)

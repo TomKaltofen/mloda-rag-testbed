@@ -1,5 +1,7 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+# license = "Apache-2.0" below is a PEP 639 SPDX string, which needs setuptools>=77.0.3; matching
+# open-kgo's floor (also PEP 639 style) rather than the bare minimum.
+requires = ["setuptools>=82.0.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
