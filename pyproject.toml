@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mloda-rag-testbed"
+version = "0.1.0"
+description = "A bank RAG chatbot built from mloda feature groups, served as a target for the llmsectest OWASP LLM Top 10 scanner."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Tom Kaltofen", email = "tomkaltofen@mloda.ai" }]
+dependencies = [
+    "mloda>=0.11.0,<0.12.0",
+    "rag-integration[connectors]>=0.4.2",
+    "open-kgo[kg-saas]>=0.3.2",
+    "fastapi>=0.100",
+    "uvicorn>=0.23",
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/TomKaltofen/mloda-rag-testbed"
+Repository = "https://github.com/TomKaltofen/mloda-rag-testbed"
+Issues = "https://github.com/TomKaltofen/mloda-rag-testbed/issues"
+
+[project.optional-dependencies]
+dev = [
+    "tox",
+    "tox-uv",
+    "uv>=0.11.6",
+    "pytest",
+    "ruff",
+    "mypy",
+    "bandit",
+    "httpx",
+    "mloda-testing>=0.3.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mloda_rag_testbed*"]
+
+[tool.setuptools.package-data]
+mloda_rag_testbed = ["corpus/*.json", "corpus/*.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["mloda_rag_testbed", "tests"]
+python_files = ["test_*.py"]
+markers = [
+    "llm: real subprocess call to a coding-agent CLI, needs the binary installed",
+]
+addopts = "-m 'not llm'"
+
+[tool.ruff]
+line-length = 120
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+namespace_packages = true
+explicit_package_bases = true
+
+[tool.bandit]
+exclude_dirs = [".tox", ".venv", "tests"]
+
+[tool.uv]
+exclude-newer = "7 days"
+exclude-newer-package = { mloda = "0 days", "mloda-testing" = "0 days", "rag-integration" = "0 days", "open-kgo" = "0 days" }

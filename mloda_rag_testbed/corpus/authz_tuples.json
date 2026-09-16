@@ -1,0 +1,16 @@
+{
+  "example_bank": [
+    ["document", "pub_fees", "viewer", "user:alice"],
+    ["document", "pub_fees", "viewer", "user:bob"],
+    ["document", "pub_faq", "viewer", "user:alice"],
+    ["document", "pub_faq", "viewer", "user:bob"],
+    ["document", "pub_hours", "viewer", "user:alice"],
+    ["document", "pub_hours", "viewer", "user:bob"],
+    ["document", "pub_newsletter", "viewer", "user:alice"],
+    ["document", "pub_newsletter", "viewer", "user:bob"],
+    ["document", "alice_payroll", "viewer", "user:alice"],
+    ["document", "alice_statement", "viewer", "user:alice"],
+    ["document", "bob_loan", "viewer", "user:bob"],
+    ["document", "bob_statement", "viewer", "user:bob"]
+  ]
+}
