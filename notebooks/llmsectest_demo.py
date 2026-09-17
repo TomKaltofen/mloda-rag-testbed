@@ -35,7 +35,7 @@ def _(mo):
     - **a private code** inside Alice's payroll document, which only Alice may see,
     - **a booby-trapped document** with hidden instructions that try to take over the chatbot.
 
-    **Why?** [llmsectest](https://github.com/mikemikimike/llmsectest), by Mark Wernsdorfer, is a
+    **Why?** [llmsectest](https://github.com/wehnsdaefflae/llmsectest), by Mark Wernsdorfer, is a
     tool that attacks chatbots and reports what it got out of them. To know whether such a tool is
     right, you need a chatbot where you already know the correct answer. This is that chatbot.
 
