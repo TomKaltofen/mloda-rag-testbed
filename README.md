@@ -7,7 +7,7 @@
 A small bank RAG chatbot ("Example Bank"), built by composing existing [mloda](https://github.com/mloda-ai/mloda)
 feature groups from [rag_integration](https://github.com/mloda-ai/rag_integration) and
 [open-kgo](https://github.com/mloda-ai/open-kgo), served over HTTP as a ground-truth target for
-[llmsectest](https://github.com/mikemikimike/llmsectest), an OWASP LLM Top 10 security scanner.
+[llmsectest](https://github.com/wehnsdaefflae/llmsectest), an OWASP LLM Top 10 security scanner.
 
 It plants a secret, a retrieval canary, and a poisoned document on purpose, and gates document
 access per user, so a scanner run against it has known-correct answers to check itself against:
@@ -142,7 +142,7 @@ See [docs/scan.md](docs/scan.md) for the exact llmsectest commands.
 - [mloda](https://github.com/mloda-ai/mloda): the core library for open data access.
 - [rag_integration](https://github.com/mloda-ai/rag_integration): the retrieval feature groups composed here.
 - [open-kgo](https://github.com/mloda-ai/open-kgo): the authorization feature group composed here.
-- [llmsectest](https://github.com/mikemikimike/llmsectest): the scanner this app is a target for.
+- [llmsectest](https://github.com/wehnsdaefflae/llmsectest): the scanner this app is a target for.
 
 ## Development
 
