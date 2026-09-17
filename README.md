@@ -53,6 +53,22 @@ Mistral Vibe via `uv tool install mistral-vibe`, `MISTRAL_API_KEY` set).
 poison text, so it is not a meaningful llmsectest scan target. Use `codex` or `mistral` for an
 actual scan.
 
+## Demo notebook
+
+[`notebooks/llmsectest_demo.py`](notebooks/llmsectest_demo.py) is a [marimo](https://marimo.io)
+notebook that tells the story in plain language, in five steps: start the chatbot, ask it a normal
+question, check that Bob cannot see Alice's documents, attack it with `llmsectest`, and sum up. Step
+4 shows the scan results on the page (attacks tried, held up, got through, and what was not tried)
+and writes the full reports to `results/notebook-scan.sarif` and `results/pytest-results.html`. The
+notebook manages its own `fake`-backed server (`TESTBED_RETRIEVAL=all`), so nothing else needs to be
+running first.
+
+```bash
+uv sync --extra dev --extra demo
+uv run marimo edit notebooks/llmsectest_demo.py   # interactive
+uv run marimo run notebooks/llmsectest_demo.py    # read-only app view
+```
+
 ## Architecture
 
 Two `mloda.run_all` calls per request:

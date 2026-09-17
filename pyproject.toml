@@ -37,6 +37,10 @@ dev = [
     "httpx",
     "mloda-testing>=0.3.2",
 ]
+demo = [
+    "marimo>=0.10",
+    "httpx",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -56,11 +60,21 @@ addopts = "-m 'not llm'"
 [tool.ruff]
 line-length = 120
 
+[tool.ruff.lint.per-file-ignores]
+# marimo's own edit UI autosaves cells with a trailing `return` (its per-cell terminator
+# convention) and needs a bare last-expression to display a value computed in a branch; both are
+# structural to how marimo round-trips notebooks, not actual dead code.
+"notebooks/*.py" = ["PLR1711", "B018"]
+
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
 namespace_packages = true
 explicit_package_bases = true
+# marimo's reactive cell-execution model passes shared imports between cells as untyped
+# parameters (its per-cell globals don't resolve typing.Any), which is incompatible with
+# disallow_untyped_defs; notebooks are demo code, not library code.
+exclude = "^notebooks/"
 
 [tool.bandit]
 exclude_dirs = [".tox", ".venv", "tests"]
